@@ -53,7 +53,7 @@ class ProtocolHandler:
         if not isinstance(method, str) or not method.strip():
             return self._error_response(request_id, JsonRpcError(-32600, "Invalid Request"))
 
-        if method == "initialized":
+        if method in {"initialized", "notifications/initialized"}:
             return None
         if method == "initialize":
             try:
