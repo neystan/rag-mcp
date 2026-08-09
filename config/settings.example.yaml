@@ -1,0 +1,61 @@
+app:
+  name: modular-rag-mcp
+  environment: local
+
+llm:
+  provider: ""
+  model: ""
+  base_url: ""
+  api_key: ""
+  timeout: 90
+
+vision_llm:
+  provider: ""
+  model: ""
+  base_url: ""
+  api_key: ""
+  timeout: 30
+
+embedding:
+  provider: ""
+  model: ""
+  base_url: ""
+  api_key: ""
+  timeout: 30
+
+splitter:
+  provider: ""
+  chunk_size: 500
+  chunk_overlap: 100
+
+vector_store:
+  provider: ""
+  collection: ""
+  persist_path: data/db/vector_store
+
+retrieval:
+  top_k: 3
+  mode: ""
+
+rerank:
+  provider: ""
+  model: ""
+  base_url: ""
+  api_key: ""
+  top_k: 2
+
+evaluation:
+  provider: ""
+  enabled: false
+
+observability:
+  log_level: INFO
+  log_file: logs/app.log
+
+ingestion:
+  chunk_refiner:
+    use_llm: true
+  metadata_enricher:
+    use_llm: false
+  image_captioner:
+    use_vision_llm: true

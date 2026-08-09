@@ -1,0 +1,17 @@
+services:
+  dashboard:
+    build:
+      context: .
+    image: modular-rag-mcp:local
+    command:
+      - python
+      - scripts/start_dashboard.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./config/settings.yaml:/app/config/settings.yaml:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped

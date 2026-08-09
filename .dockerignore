@@ -1,0 +1,23 @@
+.git/
+.gitignore
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+build/
+dist/
+*.egg-info/
+
+# Local-only content and runtime data
+.claude/
+.github/
+tests/
+DEV_SPEC.md
+config/settings.yaml
+data/
+logs/
+*.log
+*.jsonl

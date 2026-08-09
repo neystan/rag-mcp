@@ -1,70 +1,29 @@
 # Modular RAG MCP Server
 
-> 一个可插拔、可观测的模块化 RAG（检索增强生成）服务框架，通过 MCP（Model Context Protocol）协议对外暴露工具接口，支持 Copilot / Claude 等 AI 助手直接调用
+## 项目简介
 
-### 不只是项目，更是一整套思路
+Modular RAG MCP Server 是一个本地优先、可插拔的 RAG 服务，通过 MCP 协议向 Copilot、Claude 等 AI 客户端提供知识库检索能力。
 
-**比这个项目本身更有价值的，是它背后蕴含的一整套工程化思路**：
+项目包含：
 
-- 如何编写 **DEV_SPEC**（开发规格文档）来驱动开发
-- 如何用 **Skill** 基于 Spec 自动完成代码编写
-- 如何用 **Skill** 进行自动化测试、打包、环境配置
-- 如何基于可插拔架构进行扩展（比如扩展到 Agent）
+- PDF 文档摄取、切分、向量化和持久化；
+- Dense + Sparse 混合检索与可选重排；
+- MCP 工具：`query_knowledge_hub`、`list_collections`、`get_document_summary`；
+- Streamlit Dashboard，用于查看数据、摄取过程和查询追踪；
+- LLM、Embedding、Reranker、Vector Store 等模块的可插拔配置。
 
-**学会了思路，你可以自己做全新的项目和扩展**。以上每一步的具体做法、设计思路，在笔记中都有对应的视频讲解，建议配合观看。
+## 使用开始
 
-### 核心能力一览
-
-| 模块 | 能力 | 说明 |
-|------|------|------|
-| **Ingestion Pipeline** | PDF → Markdown → Chunk → Transform → Embedding → Upsert | 全链路数据摄取，支持多模态图片描述（Image Captioning） |
-| **Hybrid Search** | Dense (向量) + Sparse (BM25) + RRF Fusion + Rerank | 粗排召回 + 精排重排的两段式检索架构 |
-| **MCP Server** | 标准 MCP 协议暴露 Tools | `query_knowledge_hub`、`list_collections`、`get_document_summary` |
-| **Dashboard** | Streamlit 六页面管理平台 | 系统总览 / 数据浏览 / Ingestion 管理 / 摄取追踪 / 查询追踪 / 评估面板 |
-| **Evaluation** | Ragas + Custom 评估体系 | 支持 golden test set 回归测试，拒绝"凭感觉"调优 |
-| **Observability** | 全链路白盒化追踪 | Ingestion 与 Query 两条链路的每一个中间状态透明可见 |
-| **Skill 驱动全流程** | 从编写到测试、打包、配置一键完成 | auto-coder / qa-tester / package / setup 等 Skill 覆盖完整开发生命周期（笔记中每个 Skill 的使用和设计思路均有讲解，请参考配套视频） |
-
-### 技术亮点
-
-**🔌 全链路可插拔架构**：LLM / Embedding / Reranker / Splitter / VectorStore / Evaluator 每一个核心环节均定义了抽象接口，支持"乐高积木式"替换，通过配置文件一键切换后端，零代码修改。
-
-**🔍 混合检索 + 重排**：BM25 稀疏检索解决专有名词精确匹配 + Dense Embedding 解决同义词语义匹配，RRF 融合后可选 Cross-Encoder / LLM Rerank 精排，平衡查全率与查准率。
-
-**🖼️ 多模态图像处理**：采用 Image-to-Text 策略，利用 Vision LLM 自动生成图片描述并缝合进 Chunk，复用纯文本 RAG 链路即可实现"搜文字出图"。
-
-**📡 MCP 生态集成**：遵循 Model Context Protocol 标准，可直接对接 GitHub Copilot、Claude Desktop 等 MCP Client，零前端开发，一次开发处处可用。
-
-**📊 可视化管理 + 自动化评估**：Streamlit Dashboard 提供完整的数据管理与链路追踪能力，集成 Ragas 等评估框架，建立基于数据的迭代反馈回路。
-
-**🧪 三层测试体系**：Unit / Integration / E2E 分层测试，覆盖独立模块逻辑、模块间交互、完整链路（MCP Client / Dashboard）。
-
-**🤖 Skill 驱动全流程**：内置 auto-coder（自动编码）、qa-tester（自动测试）、package（清理打包）、setup（一键配置）等 Agent Skill，覆盖从代码编写到测试、打包、部署的完整开发生命周期。每个 Skill 的使用方法和设计思路在笔记的项目部分均有讲解视频，可参考学习。
-
-> 📖 详细架构设计、模块说明和任务排期请参阅 [DEV_SPEC.md](DEV_SPEC.md)
-
----
----
-
-## 🚀 快速开始
-
-### 1. 克隆项目并进入目录
+### 1. 克隆项目
 
 ```bash
-git clone <repo-url>
-cd MODULAR-RAG-MCP
+git clone https://github.com/neystan/rag-mcp.git
+cd rag-mcp
 ```
 
 ### 2. 安装依赖
 
-推荐使用 `uv`：
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-uv sync
-```
-
-如果你已经安装了 `uv`，直接执行：
+项目使用 `uv` 管理依赖：
 
 ```bash
 uv sync
@@ -72,26 +31,25 @@ uv sync
 
 ### 3. 准备配置
 
-项目默认读取 `config/settings.yaml`。运行前至少确认：
+复制脱敏配置模板：
 
-- `llm.provider` / `llm.model`
-- `embedding.provider` / `embedding.model`
-- `vector_store.provider` / `vector_store.persist_path`
-- `retrieval.top_k`
-- `rerank.provider`
-- `evaluation.provider`
+```bash
+cp config/settings.example.yaml config/settings.yaml
+```
 
-建议不要把真实 `api_key` 提交到仓库。开发时可先写本地配置，提交前再改成环境变量注入。
+然后编辑 `config/settings.yaml`，至少填写对应的 Provider、模型、向量库和 API Key。该文件已被 `.gitignore` 忽略，不要提交真实密钥。
 
-### 4. 摄取示例数据
+### 4. 摄取文档
+
+将 PDF 文件放入本地 `data/input/` 目录，然后执行：
 
 ```bash
 uv run python scripts/ingest.py \
-  --path tests/fixtures/sample_documents/ \
+  --path data/input/ \
   --collection demo
 ```
 
-### 5. 执行一次查询
+### 5. 查询知识库
 
 ```bash
 uv run python scripts/query.py \
@@ -112,147 +70,47 @@ uv run python scripts/start_dashboard.py
 uv run python scripts/start_mcp_server.py
 ```
 
-### 8. 运行评估
+MCP 客户端使用 stdio 方式连接，工作目录应设置为项目根目录。
+
+### 8. 使用 Docker
+
+Docker 部署不要求宿主机安装 `uv`。先准备本地配置和数据目录：
 
 ```bash
-uv run python scripts/evaluate.py \
-  --test-set tests/fixtures/golden_test_set.json
+cp config/settings.example.yaml config/settings.yaml
+mkdir -p data logs
 ```
 
-### 9. 可选：一键配置（Setup Skill）
-
-本项目提供了 **Setup Skill** 一键完成 Provider 选择、API Key 配置、依赖安装、配置文件生成和 Dashboard 启动。
-
-在 VS Code 中打开项目，通过 Copilot / Claude 对话框输入：
-
-```text
-setup
-```
-
-Agent 会自动引导你完成全部配置流程；如果你想完全手动控制环境，也可以直接按上面的 CLI 步骤走通。
-
----
-
-## ⚙️ 配置说明
-
-`config/settings.yaml` 当前主要包含这些部分：
-
-```yaml
-app:
-  name: modular-rag-mcp
-  environment: local
-
-llm:
-  provider: qwen
-  model: kimi-k2.5
-
-vision_llm:
-  provider: qwen
-  model: kimi-k2.5
-
-embedding:
-  provider: qwen
-  model: text-embedding-v4
-
-splitter:
-  provider: recursive
-  chunk_size: 500
-  chunk_overlap: 100
-
-vector_store:
-  provider: chroma
-  collection: default
-  persist_path: data/db/chroma
-
-retrieval:
-  top_k: 3
-  mode: hybrid
-
-rerank:
-  provider: qwen
-  model: qwen3-rerank
-
-evaluation:
-  provider: ragas
-  enabled: true
-```
-
-各字段作用：
-
-- `app`：项目名和环境标记。
-- `llm`：回答生成、评估生成等文本模型配置。
-- `vision_llm`：图片理解与图生文配置。
-- `embedding`：向量编码模型配置。
-- `splitter`：切块策略和参数。
-- `vector_store`：向量库 provider、collection 和持久化路径。
-- `retrieval`：检索层参数，比如 `top_k`、检索模式。
-- `rerank`：重排模型配置。
-- `evaluation`：评估后端，支持 `custom`、`ragas` 或 `backends` 组合。
-- `observability`：日志配置。
-- `ingestion`：摄取增强开关，如 `chunk_refiner`、`metadata_enricher`、`image_captioner`。
-
----
-
-## 🔌 MCP 配置示例
-
-### GitHub Copilot `mcp.json`
-
-```json
-{
-  "servers": {
-    "modular-rag-mcp": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "python", "scripts/start_mcp_server.py"]
-    }
-  }
-}
-```
-
-### Claude Desktop `claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "modular-rag-mcp": {
-      "command": "uv",
-      "args": ["run", "python", "scripts/start_mcp_server.py"],
-      "cwd": "/absolute/path/to/MODULAR-RAG-MCP"
-    }
-  }
-}
-```
-
-当前 MCP Server 暴露的核心工具：
-
-- `query_knowledge_hub`
-- `list_collections`
-- `get_document_summary`
-
----
-
-## 🖥️ Dashboard 使用指南
-
-启动命令：
+启动 Dashboard：
 
 ```bash
-uv run python scripts/start_dashboard.py
+docker compose up --build dashboard
 ```
 
-页面说明：
+启动后访问 <http://localhost:8501>。
 
-- `系统总览`：查看当前 provider、模型、向量库路径和数据资产统计。
-- `数据浏览器`：查看已摄入文档、chunk 和图片详情。
-- `Ingestion 管理`：上传 PDF、触发摄取、删除文档。
-- `Ingestion 追踪`：查看摄取阶段耗时和 trace 细节。
-- `Query 追踪`：查看 Dense / Sparse / Fusion / Rerank 的变化。
-- `评估面板`：运行 golden test set，查看进度条、历史记录和各 case 指标。
+也可以直接在容器中摄取文档和执行查询，不需要在宿主机安装 `uv`：
 
-推荐操作顺序：
+```bash
+docker compose run --rm dashboard \
+  python scripts/ingest.py \
+  --path data/input/ \
+  --collection demo
 
-1. 先在 `Ingestion 管理` 上传或摄取文档。
-2. 到 `数据浏览器` 确认文档和 chunk 已入库。
-3. 通过 CLI 或 `Query 追踪` 验证查询链路。
-4. 最后在 `评估面板` 跑 `custom` 或 `ragas` 评估。
+docker compose run --rm dashboard \
+  python scripts/query.py \
+  --query "What is Modular RAG?" \
+  --collection demo \
+  --verbose
+```
 
----
+如果需要让 MCP 客户端通过 Docker 启动 stdio Server：
+
+```bash
+docker build -t modular-rag-mcp:local .
+docker run --rm -i \
+  -v "$PWD/config/settings.yaml:/app/config/settings.yaml:ro" \
+  -v "$PWD/data:/app/data" \
+  -v "$PWD/logs:/app/logs" \
+  modular-rag-mcp:local
+```

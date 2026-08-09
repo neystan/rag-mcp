@@ -97,6 +97,13 @@ logs/
 *.log
 traces.jsonl
 
+# Local project configuration and optional development-only content
+config/settings.yaml
+DEV_SPEC.md
+.claude/
+.github/
+tests/
+
 # Auto-coder skill cache
 .github/skills/auto-coder/.spec_hash
 
