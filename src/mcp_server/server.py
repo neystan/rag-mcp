@@ -1,135 +1,95 @@
-"""MCP Server 入口。"""
+"""Launch the RAG FastMCP application over stdio or Streamable HTTP."""
 
 from __future__ import annotations
 
-import json
-import sys
-from typing import Any, BinaryIO
+import argparse
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Literal
 
 from core.settings import SettingsError, load_settings
-from mcp_server.protocol_handler import ProtocolHandler
-from mcp_server.tools.get_document_summary import build_get_document_summary_tool
-from mcp_server.tools.list_collections import build_list_collections_tool
-from mcp_server.tools.query_knowledge_hub import build_query_knowledge_hub_tool
+from mcp_server.app import create_mcp_server
 from observability.logger import get_logger
 
 
-class McpServer:
-    """基于 stdio transport 的最小 MCP Server。"""
+Transport = Literal["stdio", "streamable-http"]
 
-    def __init__(
-        self,
-        stdin: BinaryIO | None = None,
-        stdout: BinaryIO | None = None,
-        stderr: BinaryIO | None = None,
-        protocol_handler: ProtocolHandler | None = None,
-    ) -> None:
-        self.stdin = stdin or sys.stdin.buffer
-        self.stdout = stdout or sys.stdout.buffer
-        self.stderr = stderr or sys.stderr.buffer
-        self.logger = get_logger(__name__)
-        self._output_mode = "framed"
-        self.protocol_handler = protocol_handler or ProtocolHandler(
-            tools=[
-                build_query_knowledge_hub_tool(),
-                build_list_collections_tool(),
-                build_get_document_summary_tool(),
-            ]
-        )
 
-    def serve_forever(self) -> int:
-        """循环读取并处理 MCP 消息，直到 EOF。"""
+@dataclass(frozen=True, slots=True)
+class ServerOptions:
+    """Validated launch settings for a single FastMCP application."""
 
-        while True:
-            message = self._read_message()
-            if message is None:
-                self.logger.info("stdio closed, server exiting")
-                return 0
+    transport: Transport
+    host: str
+    port: int
+    path: str
+    settings_path: str
 
-            response = self._handle_message(message)
-            if response is not None:
-                self._write_message(response)
 
-    def _handle_message(self, message: dict[str, Any]) -> dict[str, Any] | None:
-        method = message.get("method")
-        if method == "initialize":
-            self.logger.info("handled initialize request")
-        elif method == "initialized":
-            self.logger.info("received initialized notification")
-        elif method == "tools/list":
-            self.logger.info("handled tools/list request")
-        elif method == "tools/call":
-            self.logger.info("handled tools/call request")
+def parse_args(argv: Sequence[str] | None = None) -> ServerOptions:
+    """Parse launcher arguments without constructing a transport."""
 
-        return self.protocol_handler.handle_message(message)
+    parser = argparse.ArgumentParser(description="Run the modular RAG MCP server.")
+    parser.add_argument(
+        "--transport",
+        choices=("stdio", "streamable-http"),
+        default="stdio",
+        help="MCP transport to run (default: stdio).",
+    )
+    parser.add_argument("--host", default="127.0.0.1", help="HTTP bind host.")
+    parser.add_argument("--port", type=_port, default=8000, help="HTTP bind port.")
+    parser.add_argument("--path", type=_path, default="/mcp", help="Streamable HTTP path.")
+    parser.add_argument(
+        "--settings",
+        default="config/settings.yaml",
+        dest="settings_path",
+        help="Path to the RAG settings YAML file.",
+    )
+    parsed = parser.parse_args(argv)
+    return ServerOptions(
+        transport=parsed.transport,
+        host=parsed.host,
+        port=parsed.port,
+        path=parsed.path,
+        settings_path=parsed.settings_path,
+    )
 
-    def _read_message(self) -> dict[str, Any] | None:
-        headers: dict[str, str] = {}
-        while True:
-            line = self.stdin.readline()
-            if line == b"":
-                return None
 
-            stripped = line.decode("utf-8").strip()
-            if not stripped:
-                break
-            if not headers and stripped.startswith("{"):
-                self._output_mode = "jsonl"
-                return self._decode_message(stripped.encode("utf-8"))
+def main(argv: Sequence[str] | None = None) -> int:
+    """Validate settings, create one application catalog, and run its transport."""
 
-            key, separator, value = stripped.partition(":")
-            if not separator:
-                raise ValueError(f"invalid header line: {stripped}")
-            headers[key.strip().lower()] = value.strip()
-
-        self._output_mode = "framed"
-        content_length = int(headers.get("content-length", "0"))
-        if content_length <= 0:
-            raise ValueError("missing or invalid Content-Length header")
-
-        payload = self.stdin.read(content_length)
-        if len(payload) != content_length:
-            raise ValueError("unexpected EOF while reading MCP payload")
-
-        return self._decode_message(payload)
-
-    @staticmethod
-    def _decode_message(payload: bytes) -> dict[str, Any]:
-        message = json.loads(payload.decode("utf-8"))
-        if not isinstance(message, dict):
-            raise ValueError("MCP payload must be JSON object")
-        return message
-
-    def _write_message(self, payload: dict[str, Any]) -> None:
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        if self._output_mode == "jsonl":
-            self.stdout.write(body + b"\n")
-            self.stdout.flush()
-            return
-
-        header = f"Content-Length: {len(body)}\r\n\r\n".encode("utf-8")
-        self.stdout.write(header)
-        self.stdout.write(body)
-        self.stdout.flush()
-
-def main() -> None:
-    """启动 MCP Server。"""
-
+    options = parse_args(argv)
     logger = get_logger(__name__)
     try:
-        settings = load_settings("config/settings.yaml")
+        settings = load_settings(options.settings_path)
     except SettingsError as exc:
-        logger.error("配置加载失败: %s", exc)
-        raise SystemExit(1) from exc
+        logger.error("configuration failed: %s", exc)
+        return 1
 
-    logger.info("mcp server starting: %s", settings.app["name"])
-    server = McpServer()
+    logger.info("mcp server starting: %s (%s)", settings.app["name"], options.transport)
+    server = create_mcp_server(
+        options.settings_path,
+        host=options.host,
+        port=options.port,
+        streamable_http_path=options.path,
+    )
+    server.run(transport=options.transport)
+    return 0
+
+
+def _port(value: str) -> int:
     try:
-        raise SystemExit(server.serve_forever())
-    except Exception as exc:  # noqa: BLE001
-        logger.error("mcp server fatal error: %s", exc)
-        raise SystemExit(1) from exc
+        port = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("port must be an integer") from exc
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError("port must be between 1 and 65535")
+    return port
 
 
-if __name__ == "__main__":
-    main()
+def _path(value: str) -> str:
+    if not value.startswith("/"):
+        raise argparse.ArgumentTypeError("path must start with '/'")
+    if value == "/":
+        raise argparse.ArgumentTypeError("path must not be '/'")
+    return value.rstrip("/")

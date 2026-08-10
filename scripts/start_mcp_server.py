@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import sys
 
 from mcp_server.server import main
 
@@ -15,4 +16,4 @@ def _chdir_repo_root() -> None:
 
 if __name__ == "__main__":
     _chdir_repo_root()
-    main()
+    raise SystemExit(main(sys.argv[1:]))

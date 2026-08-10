@@ -8,29 +8,10 @@ from typing import Any
 import chromadb
 
 from core.settings import load_settings
-from mcp_server.protocol_handler import ProtocolHandlerError, ToolDefinition
+from mcp_server.errors import ToolInputError
 
 
 DEFAULT_SETTINGS_PATH = Path("config/settings.yaml")
-
-
-def build_list_collections_tool(settings_path: str | Path = DEFAULT_SETTINGS_PATH) -> ToolDefinition:
-    """构建读取向量库集合的 Tool 定义。"""
-
-    def handler(arguments: dict[str, Any]) -> dict[str, object]:
-        """忽略参数并读取当前配置的集合。"""
-        del arguments
-        return list_collections(settings_path)
-
-    return ToolDefinition(
-        name="list_collections",
-        description="列出当前知识库中可用于查询的文档集合",
-        input_schema={
-            "type": "object",
-            "properties": {},
-        },
-        handler=handler,
-    )
 
 
 def list_collections(settings_path: str | Path = DEFAULT_SETTINGS_PATH) -> dict[str, object]:
@@ -39,7 +20,7 @@ def list_collections(settings_path: str | Path = DEFAULT_SETTINGS_PATH) -> dict[
     vector_store = settings.vector_store
     provider = str(vector_store.get("provider", "")).strip().lower()
     if provider != "chroma":
-        raise ProtocolHandlerError(f"unsupported vector store provider for list_collections: {provider}")
+        raise ToolInputError(f"unsupported vector store provider for list_collections: {provider}")
 
     persist_path = str(vector_store.get("persist_path", "data/db/chroma"))
     physical_collection = str(vector_store.get("collection", "default")).strip() or "default"

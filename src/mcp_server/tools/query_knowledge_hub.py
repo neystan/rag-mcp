@@ -9,45 +9,10 @@ from core.response.multimodal_assembler import MultimodalAssembler
 from core.response.response_builder import ResponseBuilder
 from core.settings import Settings, load_settings
 from core.types import RetrievalResult
-from mcp_server.protocol_handler import ProtocolHandlerError, ToolDefinition
+from mcp_server.errors import ToolInputError
 
 
 ToolExecutor = Callable[[str, int, str | None], list[RetrievalResult]]
-
-
-def build_query_knowledge_hub_tool(
-    executor: ToolExecutor | None = None,
-    response_builder: ResponseBuilder | None = None,
-    multimodal_assembler: MultimodalAssembler | None = None,
-    settings_path: str | Path = "config/settings.yaml",
-) -> ToolDefinition:
-    """构建 query_knowledge_hub 的工具定义。"""
-
-    def handler(arguments: dict[str, Any]) -> dict[str, object]:
-        return query_knowledge_hub(
-            arguments.get("query"),
-            top_k=arguments.get("top_k"),
-            collection=arguments.get("collection"),
-            executor=executor,
-            response_builder=response_builder,
-            multimodal_assembler=multimodal_assembler,
-            settings_path=settings_path,
-        )
-
-    return ToolDefinition(
-        name="query_knowledge_hub",
-        description="查询知识库并返回带引用的 Markdown 结果",
-        input_schema={
-            "type": "object",
-            "properties": {
-                "query": {"type": "string", "description": "用户查询"},
-                "top_k": {"type": "integer", "minimum": 1, "description": "兼容字段；MCP 服务端实际使用配置 retrieval.top_k"},
-                "collection": {"type": "string", "description": "可选 collection 过滤"},
-            },
-            "required": ["query"],
-        },
-        handler=handler,
-    )
 
 
 def query_knowledge_hub(
@@ -65,7 +30,7 @@ def query_knowledge_hub(
     normalized_query = _normalize_query(query)
     normalized_collection = _normalize_collection(collection)
     settings = load_settings(settings_path)
-    normalized_top_k = _resolve_top_k(settings)
+    normalized_top_k = _normalize_top_k(top_k) if top_k is not None else _resolve_top_k(settings)
     active_builder = response_builder or ResponseBuilder()
     active_assembler = multimodal_assembler or MultimodalAssembler()
     active_executor = executor or _build_default_executor(settings_path)
@@ -95,13 +60,13 @@ def _build_default_executor(settings_path: str | Path) -> ToolExecutor:
 
 def _normalize_query(query: Any) -> str:
     if not isinstance(query, str) or not query.strip():
-        raise ProtocolHandlerError("query is required")
+        raise ToolInputError("query is required")
     return query.strip()
 
 
 def _normalize_top_k(top_k: Any) -> int:
     if not isinstance(top_k, int) or top_k <= 0:
-        raise ProtocolHandlerError("top_k must be positive int")
+        raise ToolInputError("top_k must be positive int")
     return top_k
 
 
@@ -113,6 +78,6 @@ def _normalize_collection(collection: Any) -> str | None:
     if collection is None:
         return None
     if not isinstance(collection, str):
-        raise ProtocolHandlerError("collection must be string")
+        raise ToolInputError("collection must be string")
     normalized = collection.strip()
     return normalized or None

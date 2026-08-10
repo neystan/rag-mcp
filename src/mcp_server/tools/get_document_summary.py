@@ -8,37 +8,10 @@ from typing import Any, Callable
 import chromadb
 
 from core.settings import load_settings
-from mcp_server.protocol_handler import ProtocolHandlerError, ToolDefinition
+from mcp_server.errors import ToolInputError
 
 
 DocumentSummaryResolver = Callable[[str], dict[str, object] | None]
-
-
-def build_get_document_summary_tool(
-    resolver: DocumentSummaryResolver | None = None,
-    settings_path: str | Path = "config/settings.yaml",
-) -> ToolDefinition:
-    """构建 get_document_summary 工具定义。"""
-
-    def handler(arguments: dict[str, Any]) -> dict[str, object]:
-        return get_document_summary(
-            arguments.get("doc_id"),
-            resolver=resolver,
-            settings_path=settings_path,
-        )
-
-    return ToolDefinition(
-        name="get_document_summary",
-        description="按文档 ID 返回 title、summary、tags 等结构化摘要",
-        input_schema={
-            "type": "object",
-            "properties": {
-                "doc_id": {"type": "string", "description": "文档 ID；当前默认使用 source_path"},
-            },
-            "required": ["doc_id"],
-        },
-        handler=handler,
-    )
 
 
 def get_document_summary(
@@ -53,7 +26,7 @@ def get_document_summary(
     active_resolver = resolver or _build_default_resolver(settings_path)
     summary = active_resolver(normalized_doc_id)
     if summary is None:
-        raise ProtocolHandlerError(f"document not found: {normalized_doc_id}")
+        raise ToolInputError(f"document not found: {normalized_doc_id}")
 
     return {
         "content": [
@@ -71,7 +44,7 @@ def _build_default_resolver(settings_path: str | Path) -> DocumentSummaryResolve
     vector_store = settings.vector_store
     provider = str(vector_store.get("provider", "")).strip().lower()
     if provider != "chroma":
-        raise ProtocolHandlerError(f"unsupported vector store provider for get_document_summary: {provider}")
+        raise ToolInputError(f"unsupported vector store provider for get_document_summary: {provider}")
 
     persist_path = str(vector_store.get("persist_path", "data/db/chroma"))
     collection_name = str(vector_store.get("collection", "default")).strip() or "default"
@@ -115,7 +88,7 @@ def _build_markdown(summary: dict[str, object]) -> str:
 
 def _normalize_doc_id(doc_id: Any) -> str:
     if not isinstance(doc_id, str) or not doc_id.strip():
-        raise ProtocolHandlerError("doc_id is required")
+        raise ToolInputError("doc_id is required")
     return doc_id.strip()
 
 

@@ -102,7 +102,6 @@ config/settings.yaml
 DEV_SPEC.md
 .claude/
 .github/
-tests/
 
 # Auto-coder skill cache
 .github/skills/auto-coder/.spec_hash

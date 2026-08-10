@@ -6,7 +6,9 @@ requires-python = ">=3.11"
 dependencies = [
     "chromadb>=1.0.12",
     "datasets>=4.8.5",
+    "jieba>=0.42.1",
     "langchain-text-splitters>=1.1.2",
+    "mcp>=1.26.0,<2.0.0",
     "pillow>=11.2.1",
     "pypdf>=6.5.0",
     "pyyaml>=6.0.3",
