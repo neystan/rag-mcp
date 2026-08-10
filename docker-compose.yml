@@ -2,7 +2,7 @@ services:
   rag-mcp:
     build:
       context: .
-    image: modular-rag-mcp:local
+    image: rag-mcp:local
     command:
       - python
       - scripts/start_mcp_server.py
@@ -25,7 +25,7 @@ services:
   dashboard:
     build:
       context: .
-    image: modular-rag-mcp:local
+    image: rag-mcp:local
     command:
       - python
       - scripts/start_dashboard.py

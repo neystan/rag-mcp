@@ -29,7 +29,7 @@ class ServerOptions:
 def parse_args(argv: Sequence[str] | None = None) -> ServerOptions:
     """Parse launcher arguments without constructing a transport."""
 
-    parser = argparse.ArgumentParser(description="Run the modular RAG MCP server.")
+    parser = argparse.ArgumentParser(description="Run the rag-mcp server.")
     parser.add_argument(
         "--transport",
         choices=("stdio", "streamable-http"),

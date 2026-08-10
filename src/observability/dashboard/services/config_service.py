@@ -37,7 +37,7 @@ class ConfigService:
     def get_app_summary(self) -> dict[str, str]:
         settings = self.get_settings()
         return {
-            "name": str(settings.app.get("name", "modular-rag-mcp")),
+            "name": str(settings.app.get("name", "rag-mcp")),
             "environment": str(settings.app.get("environment", "local")),
             "settings_path": str(self.settings_path),
         }

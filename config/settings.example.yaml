@@ -1,5 +1,5 @@
 app:
-  name: modular-rag-mcp
+  name: rag-mcp
   environment: local
 
 llm:

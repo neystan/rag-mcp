@@ -14,7 +14,7 @@ from observability.dashboard.pages.query_traces import render as render_query_tr
 
 def main() -> None:
     st.set_page_config(
-        page_title="Modular RAG Dashboard",
+        page_title="rag-mcp Dashboard",
         page_icon="📚",
         layout="wide",
         initial_sidebar_state="expanded",

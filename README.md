@@ -1,10 +1,10 @@
-# Modular RAG MCP
+# rag-mcp
 
 > 将本地 PDF 知识库以 MCP 工具的形式提供给 Claude、Copilot 及其他兼容 MCP 的 Agent。
 >
 > 支持带来源信息的混合检索、知识库集合管理和文档摘要查询；可通过 stdio 或 Streamable HTTP 接入。
 
-`Modular RAG MCP` 是一个本地优先、模块化的 RAG 服务。它将 PDF 文档摄取为可持久化的知识库，并通过标准 Model Context Protocol (MCP) 暴露检索、集合浏览和文档摘要能力，使已有的 Agent 可以在不重建 RAG 管线的前提下访问私有知识。
+`rag-mcp` 是一个本地优先的 RAG 服务。它将 PDF 文档摄取为可持久化的知识库，并通过标准 Model Context Protocol (MCP) 暴露检索、集合浏览和文档摘要能力，使已有的 Agent 可以在不重建 RAG 管线的前提下访问私有知识。
 
 项目面向已经具备 Agent 或 MCP Client 的开发者。它不负责聊天界面或 Agent 编排，而是把本地文档检索能力封装为稳定、可调用的 MCP Tool Catalog：Agent 通过工具查询，服务端负责召回、融合、重排、来源组织与可观测性记录。
 
@@ -65,7 +65,7 @@ uv run python scripts/ingest.py --path data/input --collection company-docs
 ```json
 {
   "mcpServers": {
-    "modular-rag": {
+    "rag-mcp": {
       "command": "uv",
       "args": [
         "--directory",
@@ -250,12 +250,12 @@ docker compose run --rm dashboard python scripts/query.py `
 若 MCP Client 需要由 Docker 以 stdio 启动：
 
 ```powershell
-docker build -t modular-rag-mcp:local .
+docker build -t rag-mcp:local .
 docker run --rm -i `
   -v "${PWD}/config/settings.yaml:/app/config/settings.yaml:ro" `
   -v "${PWD}/data:/app/data" `
   -v "${PWD}/logs:/app/logs" `
-  modular-rag-mcp:local
+  rag-mcp:local
 ```
 
 ## Dashboard
@@ -362,6 +362,6 @@ Chroma 持久化向量库 + 本地 BM25 索引
 - `get_document_summary.doc_id` 使用源文件路径，而非独立的全局文档 ID。
 - 认证、授权、多租户隔离和公网安全部署不在项目范围内。
 
-## 许可证与贡献
+## 许可证
 
-当前仓库尚未包含许可证和贡献规范文件。提交公开发布版本前，建议补充 `LICENSE`、`CONTRIBUTING.md` 和 Issue 模板。
+本项目采用 MIT 许可证，详见 [`LICENSE`](LICENSE)。

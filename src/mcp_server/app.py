@@ -24,7 +24,7 @@ def create_mcp_server(
 
     normalized_settings_path = Path(settings_path)
     server = FastMCP(
-        "modular-rag-mcp",
+        "rag-mcp",
         instructions="Query and inspect the local RAG knowledge hub.",
         host=host,
         port=port,
