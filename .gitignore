@@ -99,6 +99,8 @@ traces.jsonl
 
 # Local project configuration and optional development-only content
 config/settings.yaml
+docs/
+tests/
 DEV_SPEC.md
 .claude/
 .github/
