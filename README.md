@@ -4,6 +4,8 @@
 >
 > 支持带来源信息的混合检索、知识库集合管理和文档摘要查询；可通过 stdio 或 Streamable HTTP 接入。
 
+![rag-mcp Dashboard](assets/rag-dashboard.png)
+
 `rag-mcp` 是一个本地优先的 RAG 服务。它将 PDF 文档摄取为可持久化的知识库，并通过标准 Model Context Protocol (MCP) 暴露检索、集合浏览和文档摘要能力，使已有的 Agent 可以在不重建 RAG 管线的前提下访问私有知识。
 
 项目面向已经具备 Agent 或 MCP Client 的开发者。它不负责聊天界面或 Agent 编排，而是把本地文档检索能力封装为稳定、可调用的 MCP Tool Catalog：Agent 通过工具查询，服务端负责召回、融合、重排、来源组织与可观测性记录。
